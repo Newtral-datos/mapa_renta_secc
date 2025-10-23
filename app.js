@@ -215,7 +215,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const geocoder = new MapboxGeocoder({
         accessToken: mapboxgl.accessToken,
         mapboxgl,
-        placeholder: " Buscar municipio…",
+        placeholder: "         Buscar municipio…",
         marker: false
       });
       map.addControl(geocoder, 'top-right');
