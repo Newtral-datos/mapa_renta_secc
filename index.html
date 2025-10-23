@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mapa renta por sección censal</title>
+
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+
+  <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #app { height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+    header, footer { padding: 8px 12px; font: 14px/1.4 system-ui, sans-serif; }
+    .map-wrap { position: relative; height: 100%; }
+    #map { position: absolute; inset: 0; }
+
+    #legend {
+      position: absolute; top: 12px; left: 12px;
+      background: #fff; color: #111;
+      border-radius: 8px; padding: 10px 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.12);
+      max-width: 300px; z-index: 20;
+    }
+    #legend.hidden { display: none; }
+    .legend-title { font: bold 13px/1.4 system-ui, sans-serif; text-align: center; }
+    .legend-subtitle { font: italic 12px/1.4 system-ui, sans-serif; font-weight: 400; text-align: center; margin-bottom: 6px; }
+    .legend-strip { display: flex; width: 100%; height: 14px; border: 1px solid rgba(0,0,0,.12); border-radius: 3px; overflow: hidden; }
+    .legend-labels { display: flex; justify-content: space-between; width: 100%; font: 12px/1.4 system-ui, sans-serif; margin-top: 6px; }
+
+    #filter {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      background: #fff; color: #111; border-radius: 10px;
+      padding: 8px 10px; box-shadow: 0 6px 18px rgba(0,0,0,.12);
+      display: flex; align-items: center; gap: 10px; z-index: 21;
+      max-width: 90vw;
+    }
+    #filter.hidden { display: none; }
+    #filter .label { font: 12px/1.2 system-ui, sans-serif; font-weight: 700; white-space: nowrap; }
+    #filter .value { font: 12px/1.2 system-ui, sans-serif; font-variant-numeric: tabular-nums; min-width: 80px; text-align: right; }
+
+    #filter input[type="range"] {
+      width: 280px;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: #aaaaaa;
+      outline: none;
+      transition: background 0.15s linear;
+    }
+    #filter input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #000; cursor: pointer; transition: transform 0.15s;
+    }
+    #filter input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    #filter input[type="range"]::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%; background: #000; cursor: pointer;
+    }
+
+    .mapboxgl-ctrl-top-right { margin: 12px; }
+    .mapboxgl-ctrl-geocoder { min-width: 260px; max-width: 520px; }
+
+    .mapboxgl-popup { max-width: none !important; }
+    .tooltip.mapboxgl-popup-content {
+      background:#fff; color:#111; border-radius:8px; padding:0;
+      box-shadow:0 12px 30px rgba(0,0,0,.20);
+      width: auto; max-width: 280px; box-sizing: border-box;
+      overflow: hidden; pointer-events:none;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      word-wrap: break-word;
+    }
+
+    @media (max-width: 600px) {
+      #legend {
+        top: auto; bottom: 12px; left: 50%; transform: translateX(-50%);
+        max-width: 200px; padding: 6px 8px; font-size: 12px; text-align: center;
+      }
+      #filter { top: 8px; padding: 6px 8px; gap: 8px; }
+      #filter input[type="range"] { width: 200px; }
+      .mapboxgl-ctrl-top-right {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        margin: 40px 0 12px;
+      }
+      .mapboxgl-ctrl-geocoder { min-width: 200px; max-width: 300px; }
+      .mapboxgl-ctrl-geocoder input::placeholder { font-size: 13px; color: #666; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header></header>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div id="legend" class="hidden"><div id="legend-content"></div></div>
+      <div id="filter" class="hidden" aria-label="Filtro por renta del hogar">
+        <span class="label">Filtrar ≥</span>
+        <input id="filter-range" type="range" min="0" max="160000" step="500" value="0" />
+        <span id="filter-value" class="value">Todos</span>
+      </div>
+    </div>
+    <footer></footer>
+  </div>
+
+  <script>
+    const range = document.getElementById('filter-range');
+    if (range) {
+      function updateSliderColor() {
+        const val = (range.value - range.min) / (range.max - range.min);
+        const pct = val * 100;
+        range.style.background = `linear-gradient(to right, #aaaaaa 0%, #aaaaaa ${pct}%, #000000 ${pct}%, #000000 100%)`;
+      }
+      range.addEventListener('input', updateSliderColor);
+      updateSliderColor();
+    }
+  </script>
+
+  <script defer src="./app.js"></script>
+</body>
+</html>
