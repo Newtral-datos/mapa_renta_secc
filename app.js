@@ -13,27 +13,17 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   map.on('load', function () {
-    const popup = new mapboxgl.Popup({
-      closeButton: false,
-      closeOnClick: false,
-      className: 'tooltip'
-    });
+    const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'tooltip' });
 
     const TEXTO_SUP = 'Renta bruta<br>por hogar (2023)';
     const TEXTO_INF = 'Variación<br>en el último lustro';
 
-    const COLORS = [
-      '#c62c58', '#bc5674', '#b3808f', '#aaaaaa',
-      '#87cdbd', '#5fd8ba', '#39e3b7', '#1cf0b5', '#01f3b3'
-    ];
+    const COLORS = ['#c62c58', '#bc5674', '#b3808f', '#aaaaaa', '#87cdbd', '#5fd8ba', '#39e3b7', '#1cf0b5', '#01f3b3'];
     const MIN = 25000, MID = 40000, MAX = 60000;
     const FRACTIONS = [0.00, 0.09, 0.18, 0.27, (MID - MIN) / (MAX - MIN), 0.62, 0.78, 0.90, 1.00];
     const STOPS = FRACTIONS.map(f => MIN + (MAX - MIN) * f);
 
-    const fillColorExpr = [
-      'interpolate', ['linear'], ['to-number', ['get', 'RentaBrHogar23']],
-      ...STOPS.flatMap((s, i) => [s, COLORS[i]])
-    ];
+    const fillColorExpr = ['interpolate', ['linear'], ['to-number', ['get', 'RentaBrHogar23']], ...STOPS.flatMap((s, i) => [s, COLORS[i]])];
 
     const capa = {
       source: 'geodata_renta_secc-8w75do',
@@ -48,18 +38,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     };
 
-    if (!map.getSource(capa.source)) {
-      map.addSource(capa.source, { type: 'vector', url: capa.url });
-    }
-    map.addLayer({
-      id: capa.id,
-      type: capa.type,
-      source: capa.source,
-      'source-layer': capa.sourceLayer,
-      minzoom: 0,
-      maxzoom: 22,
-      paint: capa.paint
-    });
+    if (!map.getSource(capa.source)) map.addSource(capa.source, { type: 'vector', url: capa.url });
+    map.addLayer({ id: capa.id, type: capa.type, source: capa.source, 'source-layer': capa.sourceLayer, paint: capa.paint });
 
     const capaMono = {
       source: 'no_rentasecc-6qtd9i',
@@ -74,68 +54,59 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     };
 
-    if (!map.getSource(capaMono.source)) {
-      map.addSource(capaMono.source, { type: 'vector', url: capaMono.url });
-    }
-    map.addLayer({
-      id: capaMono.id,
-      type: capaMono.type,
-      source: capaMono.source,
-      'source-layer': capaMono.sourceLayer,
-      minzoom: 0,
-      maxzoom: 22,
-      paint: capaMono.paint
-    }, capa.id);
+    if (!map.getSource(capaMono.source)) map.addSource(capaMono.source, { type: 'vector', url: capaMono.url });
+    map.addLayer({ id: capaMono.id, type: capaMono.type, source: capaMono.source, 'source-layer': capaMono.sourceLayer, paint: capaMono.paint }, capa.id);
 
-    const toNum = (v) => {
+    const toNum = v => {
       if (v == null) return null;
       const n = parseFloat(String(v).replace(',', '.'));
       return Number.isFinite(n) ? n : null;
     };
-    const fmtEuro = (v) => {
+    const fmtEuro = v => {
       const n = toNum(v);
       return n == null ? '—' : n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' €';
     };
-    const fmtPctSigned = (v, d=1) => {
+    const fmtPctSigned = (v, d = 1) => {
       const n = toNum(v);
       if (n == null) return '—';
       const sign = n > 0 ? '+' : (n < 0 ? '−' : '');
       return `${sign}${Math.abs(n).toLocaleString('es-ES', { maximumFractionDigits: d, minimumFractionDigits: d })}%`;
     };
 
-    const hexToRgb = (hex) => {
+    const hexToRgb = hex => {
       const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [0,0,0];
+      return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [0, 0, 0];
     };
-    const rgbToHex = (r,g,b) => '#' + [r,g,b].map(x => Math.round(x).toString(16).padStart(2,'0')).join('');
-    const lerp = (a,b,t) => a + (b-a)*t;
+    const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
+    const lerp = (a, b, t) => a + (b - a) * t;
 
     function colorForValue(v) {
       if (v == null || !isFinite(v)) return COLORS[3];
       if (v <= STOPS[0]) return COLORS[0];
-      if (v >= STOPS[STOPS.length-1]) return COLORS[COLORS.length-1];
-      for (let i=0; i<STOPS.length-1; i++) {
-        const s0 = STOPS[i], s1 = STOPS[i+1];
+      if (v >= STOPS[STOPS.length - 1]) return COLORS[COLORS.length - 1];
+      for (let i = 0; i < STOPS.length - 1; i++) {
+        const s0 = STOPS[i], s1 = STOPS[i + 1];
         if (v >= s0 && v <= s1) {
           const t = (v - s0) / (s1 - s0);
-          const [r0,g0,b0] = hexToRgb(COLORS[i]);
-          const [r1,g1,b1] = hexToRgb(COLORS[i+1]);
-          return rgbToHex(lerp(r0,r1,t), lerp(g0,g1,t), lerp(b0,b1,t));
+          const [r0, g0, b0] = hexToRgb(COLORS[i]);
+          const [r1, g1, b1] = hexToRgb(COLORS[i + 1]);
+          return rgbToHex(lerp(r0, r1, t), lerp(g0, g1, t), lerp(b0, b1, t));
         }
       }
       return COLORS[3];
     }
+
     function textColorForBg(hex) {
-      const [r,g,b] = hexToRgb(hex).map(v => v / 255);
+      const [r, g, b] = hexToRgb(hex).map(v => v / 255);
       const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       return l < 0.55 ? '#fff' : '#052b1a';
     }
 
-    (function buildLegend(){
+    (function buildLegend() {
       const el = document.getElementById('legend');
       const content = document.getElementById('legend-content');
       if (!el || !content) return;
-      const stopsPct = FRACTIONS.map(f => Math.round(f*100));
+      const stopsPct = FRACTIONS.map(f => Math.round(f * 100));
       let parts = COLORS.map((c, i) => `${c} ${stopsPct[i]}%`);
       parts[parts.length - 1] = `${COLORS[COLORS.length - 1]} ${stopsPct[stopsPct.length - 1]}%, ${COLORS[COLORS.length - 1]} 100%`;
       const gradient = `linear-gradient(to right, ${parts.join(', ')})`;
@@ -191,7 +162,9 @@ document.addEventListener("DOMContentLoaded", function () {
         } else if (pct > 50) {
           const pctRicos = Math.round(100 - pct);
           pctLinea = `Está entre el ${pctRicos === 0 ? 1 : pctRicos}% más ricos de España`;
-        }        
+        } else {
+          pctLinea = 'Se mantiene en la mediana nacional';
+        }
       }
       const html = `
         <div class="popup-card" style="max-width:270px;padding:9px;">
