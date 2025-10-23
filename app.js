@@ -189,10 +189,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (pct < 50) {
           pctLinea = `Está entre el ${Math.round(pct)}% más pobres de España`;
         } else if (pct > 50) {
-          pctLinea = `Está entre el ${Math.round(100 - pct)}% más ricos de España`;
-        } else {
-          pctLinea = 'Se mantiene en la mediana nacional';
-        }
+          const pctRicos = Math.round(100 - pct);
+          pctLinea = `Está entre el ${pctRicos === 0 ? 1 : pctRicos}% más ricos de España`;
+        }        
       }
       const html = `
         <div class="popup-card" style="max-width:270px;padding:9px;">
